@@ -28,36 +28,51 @@ def home():
 @app.route('/add-song', methods=['GET', 'POST'])
 def add_song():
     if request.method == 'POST':
-        # Extract form data
-        song_title = request.form['song_title']
-        artist = request.form['artist']
-        album_title = request.form['album_title']
-        duration = request.form['duration']
+        # Extract and clean form data
+        song_title = request.form['song_title'].strip()
+        artist = request.form['artist'].strip()
+        album_title = request.form['album_title'].strip()
+        duration = request.form['duration'].strip()
+
+        # --- Validation ---
+        if not song_title:
+            flash('Song title cannot be empty!', 'danger')
+            return redirect(url_for('add_song'))
+        if not artist:
+            flash('Artist cannot be empty!', 'danger')
+            return redirect(url_for('add_song'))
+        if not album_title:
+            flash('Album cannot be empty!', 'danger')
+            return redirect(url_for('add_song'))
         
-        cursor.execute("SELECT album_id FROM albums WHERE name = %s", (album_title,))
+        # Validate duration format MM:SS
+        import re
+        if not re.match(r'^\d{1,2}:\d{2}$', duration):
+            flash('Invalid duration format. Use MM:SS.', 'danger')
+            return redirect(url_for('add_song'))
+        
+        # --- Handle album ---
+        cursor.execute("SELECT album_id FROM albums WHERE title = %s", (album_title,))
         album_result = cursor.fetchone()
         if album_result:
             album_id = album_result['album_id']
         else:
-            cursor.execute("INSERT INTO albums (name) VALUES (%s)", (album_title,))
+            cursor.execute("INSERT INTO albums (title) VALUES (%s)", (album_title,))
             db.commit()
             album_id = cursor.lastrowid
-        cursor.execute("INSERT INTO songs (title, duration, artist, album_id) VALUES (%s, %s, %s, %s)", 
-                       (song_title, duration, artist, album_id))
-        db.commit()
-        # Process the data (e.g., add it to a database)
-        # For now, let's just print it to the console
-        print("Song Title:", song_title)
-        print("Duration:", duration)
-        print("Artist:", artist)
-        print("Album:", album_title)
         
-        flash('Song added successfully! Huzzah!', 'success')  # 'success' is a category; makes a green banner at the top
-        # Redirect to home page or another page upon successful submission
+        # --- Insert song ---
+        cursor.execute("""
+            INSERT INTO songs (title, duration, artist, album_id)
+            VALUES (%s, %s, %s, %s)
+        """, (song_title, duration, artist, album_id))
+        db.commit()
+
+        flash('Song added successfully! 🎵', 'success')
         return redirect(url_for('home'))
-    else:
-        # Render the form page if the request method is GET
-        return render_template('add_song.html')
+    
+    # GET request — just render form
+    return render_template('add_song.html')
 #Delete a Song
 @app.route('/delete-song',methods=['GET', 'POST'])
 def delete_song():
@@ -79,17 +94,31 @@ def delete_song():
 #Display songs
 @app.route('/display-songs')
 def display_songs():
-    # hard code a value to the songs_list;
-    # note that this could have been a result from an SQL query :) 
-    query="""
-    SELECT s.song_id, s.title AS song, s.duration, s.artist, a.title AS album
+    # Select songs along with their album titles
+    query = """
+    SELECT 
+        s.song_id, 
+        s.title AS song, 
+        s.duration, 
+        s.artist, 
+        a.title AS album
     FROM songs s
     LEFT JOIN albums a ON s.album_id = a.album_id
     ORDER BY s.artist, a.title, s.title;
     """
     cursor.execute(query)
-    songs_list = cursor.fetchall()
-    return render_template('display_songs.html', songs = songs_list)
+    songs_list = cursor.fetchall()  # returns a list of dicts because cursor is dictionary=True
+
+    # Ensure all fields display correctly, replace None with empty string if needed
+    for song in songs_list:
+        if song['artist'] is None:
+            song['artist'] = ''
+        if song['album'] is None:
+            song['album'] = ''
+        if song['duration'] is None:
+            song['duration'] = ''
+
+    return render_template('display_songs.html', songs=songs_list)
 
 
 # these two lines of code should always be the last in the file
