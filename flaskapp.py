@@ -25,15 +25,32 @@ app.secret_key = 'your_secret_key' # this is an artifact for using flash display
 def home():
     return render_template('home.html')
 #Add a song
-# Add a song
 @app.route('/add-song', methods=['GET', 'POST'])
 def add_song():
     if request.method == 'POST':
-        song_title = request.form['song_title']
-        artist_names = request.form['artist'].split(',')  # allow multiple artists comma-separated
-        album_title = request.form['album_title']
-        duration = request.form['duration']
+        # Extract and clean form data
+        song_title = request.form['song_title'].strip()
+        artist = request.form['artist'].strip()
+        album_title = request.form['album_title'].strip()
+        duration = request.form['duration'].strip()
 
+        # --- Validation ---
+        if not song_title:
+            flash('Song title cannot be empty!', 'danger')
+            return redirect(url_for('add_song'))
+        if not artist:
+            flash('Artist cannot be empty!', 'danger')
+            return redirect(url_for('add_song'))
+        if not album_title:
+            flash('Album cannot be empty!', 'danger')
+            return redirect(url_for('add_song'))
+        
+        # Validate duration format MM:SS
+        import re
+        if not re.match(r'^\d{1,2}:\d{2}$', duration):
+            flash('Invalid duration format. Use MM:SS.', 'danger')
+            return redirect(url_for('add_song'))
+        
         # --- Handle album ---
         cursor.execute("SELECT album_id FROM albums WHERE title = %s", (album_title,))
         album_result = cursor.fetchone()
@@ -43,86 +60,79 @@ def add_song():
             cursor.execute("INSERT INTO albums (title) VALUES (%s)", (album_title,))
             db.commit()
             album_id = cursor.lastrowid
-
+        
         # --- Insert song ---
-        cursor.execute("INSERT INTO songs (title, duration, album_id) VALUES (%s, %s, %s)",
-                       (song_title, duration, album_id))
-        db.commit()
-        song_id = cursor.lastrowid
-
-        # --- Handle artists ---
-        for name in artist_names:
-            name = name.strip()
-            if not name:
-                continue
-            # Check if artist exists
-            cursor.execute("SELECT artist_id FROM artist WHERE name = %s", (name,))
-            artist_result = cursor.fetchone()
-            if artist_result:
-                artist_id = artist_result['artist_id']
-            else:
-                cursor.execute("INSERT INTO artist (name) VALUES (%s)", (name,))
-                db.commit()
-                artist_id = cursor.lastrowid
-
-            # Insert into song_artists
-            cursor.execute("INSERT INTO song_artists (song_id, artist_id) VALUES (%s, %s)",
-                           (song_id, artist_id))
+        cursor.execute("""
+            INSERT INTO songs (title, duration, artist, album_id)
+            VALUES (%s, %s, %s, %s)
+        """, (song_title, duration, artist, album_id))
         db.commit()
 
-        flash('Song added successfully!', 'success')
+        flash('Song added successfully! 🎵', 'success')
         return redirect(url_for('home'))
-
-    else:
-        return render_template('add_song.html')
-
-
-# Display songs with all artists
-@app.route('/display-songs')
-def display_songs():
-    query = """
-    SELECT s.song_id, s.title AS song, s.duration, a.title AS album,
-           GROUP_CONCAT(ar.name SEPARATOR ', ') AS artists
-    FROM songs s
-    LEFT JOIN albums a ON s.album_id = a.album_id
-    LEFT JOIN song_artists sa ON s.song_id = sa.song_id
-    LEFT JOIN artist ar ON sa.artist_id = ar.artist_id
-    GROUP BY s.song_id
-    ORDER BY artists, album, song;
-    """
-    cursor.execute(query)
-    songs_list = cursor.fetchall()
-    return render_template('display_songs.html', songs=songs_list)
-
-
-# Delete a song safely
+    
+    # GET request — just render form
+    return render_template('add_song.html')
+#Delete a Song
 @app.route('/delete-song', methods=['GET', 'POST'])
 def delete_song():
     if request.method == 'POST':
-        title = request.form['title']
-
-        # Get song_id(s) first
-        cursor.execute("SELECT song_id FROM songs WHERE title = %s", (title,))
-        song_rows = cursor.fetchall()
-        if not song_rows:
-            flash('Song not found.', 'danger')
+        title = request.form.get('title', '').strip()
+        if not title:
+            flash('Please enter a song title to delete.', 'danger')
             return redirect(url_for('delete_song'))
 
-        for row in song_rows:
-            song_id = row['song_id']
-
-            # Delete from song_artists first
-            cursor.execute("DELETE FROM song_artists WHERE song_id = %s", (song_id,))
+        try:
+            # Delete dependent rows safely for all songs with this title
+            cursor.execute("""
+                DELETE sa
+                FROM song_artists sa
+                JOIN songs s ON sa.song_id = s.song_id
+                WHERE s.title = %s
+            """, (title,))
             db.commit()
 
-            # Delete from songs
-            cursor.execute("DELETE FROM songs WHERE song_id = %s", (song_id,))
+            # Delete the songs themselves
+            cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
             db.commit()
 
-        flash(f'Song "{title}" deleted successfully.', 'warning')
+            flash(f'Song(s) "{title}" and all related artist links deleted successfully!', 'warning')
+
+        except mysql.connector.Error as err:
+            flash(f'Error deleting song: {err}', 'danger')
+
         return redirect(url_for('home'))
-    else:
-        return render_template('delete_song.html')
+
+    return render_template('delete_song.html')
+
+#Display songs
+@app.route('/display-songs')
+def display_songs():
+    # Select songs along with their album titles
+    query = """
+    SELECT 
+        s.song_id, 
+        s.title AS song, 
+        s.duration, 
+        s.artist, 
+        a.title AS album
+    FROM songs s
+    LEFT JOIN albums a ON s.album_id = a.album_id
+    ORDER BY s.artist, a.title, s.title;
+    """
+    cursor.execute(query)
+    songs_list = cursor.fetchall()  # returns a list of dicts because cursor is dictionary=True
+
+    # Ensure all fields display correctly, replace None with empty string if needed
+    for song in songs_list:
+        if song['artist'] is None:
+            song['artist'] = ''
+        if song['album'] is None:
+            song['album'] = ''
+        if song['duration'] is None:
+            song['duration'] = ''
+
+    return render_template('display_songs.html', songs=songs_list)
 
 
 # these two lines of code should always be the last in the file
