@@ -1,5 +1,5 @@
 # .github/workflows/deploy.yml
-#
+#Robert Schleicher
 # CS178 Auto-Deploy Workflow
 # --------------------------
 # Automatically deploys your Flask app to EC2 whenever you push to main.
@@ -19,39 +19,34 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main # runs every time you push to main
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: SSH into EC2 and deploy
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script: |
-            # Navigate to the project folder
-            # If this is your first deploy, clone your repo first:
-            #   git clone https://github.com/YOUR-USERNAME/cs178-flask-app.git ~/cs178-flask-app
-            cd ~/cs178-flask-app
-
-            # Pull the latest code from GitHub
-            git pull origin main
-
-            # Stop the currently running Flask app (if any)
-            # pkill looks for a process matching 'flaskapp.py' and kills it
-            pkill -f "python3 flaskapp.py" || true   # '|| true' prevents failure if nothing is running
-
-            # Wait a moment to make sure the port is released
-            sleep 2
-
-            # Restart Flask in the background
-            # nohup keeps it running after the SSH session closes
-            # Output is logged to flask.log for debugging
-            nohup python3 flaskapp.py > flask.log 2>&1 &
-
-            echo "✅ Deploy complete. Flask restarted."
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=60 \
+              $USER@$HOST bash -s << 'REMOTE'
+          cd ~/cs178-flask-app
+          git pull origin main
+          pkill -f "python3 flaskapp.py" || true
+          sleep 2
+          nohup python3 flaskapp.py > flask.log 2>&1 &
+          sleep 1
+          echo "Deploy complete. Flask restarted."
+          REMOTE

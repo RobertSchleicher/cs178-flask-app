@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Library</title>
+</head>
+<body>
+    <h1>Music Library</h1>
+    <table border="1">
+        <tr>
+            <th>Artist</th>
+            <th>Album</th>
+            <th>Release Year</th>
+            <th>Song</th>
+            <th>Duration</th>
+        </tr>
+        {% for row in songs %}
+        <tr>
+            <td>{{ row.artist }}</td>
+            <td>{{ row.album }}</td>
+            <td>{{ row.release_year }}</td>
+            <td>{{ row.song }}</td>
+            <td>{{ row.duration }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
