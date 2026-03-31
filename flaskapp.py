@@ -77,20 +77,34 @@ def add_song():
 @app.route('/delete-song', methods=['GET', 'POST'])
 def delete_song():
     if request.method == 'POST':
-        # Use .get() for safety and match the input name
+        # Get the song title from the form safely
         title = request.form.get('title', '').strip()
         if not title:
             flash('Please enter a song title to delete.', 'danger')
             return redirect(url_for('delete_song'))
 
-        # Delete from DB
-        cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
-        db.commit()
+        try:
+            # --- Step 1: Delete dependent rows in song_artists ---
+            cursor.execute("""
+                DELETE FROM song_artists 
+                WHERE song_id = (SELECT song_id FROM songs WHERE title = %s)
+            """, (title,))
+            db.commit()
 
-        flash(f'Song "{title}" deleted successfully!', 'warning')
+            # --- Step 2: Delete the song itself ---
+            cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
+            db.commit()
+
+            flash(f'Song "{title}" and all its artist links deleted successfully!', 'warning')
+
+        except mysql.connector.Error as err:
+            # Catch errors like IntegrityError or others
+            flash(f'Error deleting song: {err}', 'danger')
+
         return redirect(url_for('home'))
-    else:
-        return render_template('delete_song.html')
+
+    # GET request — show delete form
+    return render_template('delete_song.html')
 
 #Display songs
 @app.route('/display-songs')
