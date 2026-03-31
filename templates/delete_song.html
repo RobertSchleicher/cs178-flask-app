@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Delete Song</title>
+</head>
+<body>
+  <h1>Delete a Song</h1>
+  <form action="{{ url_for('delete_song') }}" method="post">
+    <label>Title of Song to Delete:</label><br>
+    <input type="text" name="title" required><br><br>
+    <input type="submit" value="Delete Song">
+  </form>
+  <a href="{{ url_for('home') }}">Back to Home</a>
+</body>
+</html>

@@ -1,7 +1,17 @@
 # author: T. Urness and M. Moore
 # description: Flask example using redirect, url_for, and flash
 # credit: the template html files were constructed with the help of ChatGPT
+import mysql.connector
+import creds  # contains host, user, password, db
 
+db = mysql.connector.connect(
+    host=creds.host,
+    user=creds.user,
+    password=creds.password,
+    database=creds.db
+)
+
+cursor = db.cursor(dictionary=True)
 from flask import Flask
 from flask import render_template
 from flask import Flask, render_template, request, redirect, url_for, flash
@@ -10,54 +20,66 @@ from dbCode import *
 app = Flask(__name__)
 app.secret_key = 'your_secret_key' # this is an artifact for using flash displays; 
                                    # it is required, but you can leave this alone
-
+#Home Page
 @app.route('/')
 def home():
     return render_template('home.html')
-
-@app.route('/add-user', methods=['GET', 'POST'])
-def add_user():
+#Add a song
+@app.route('/add-song', methods=['GET', 'POST'])
+def add_song():
     if request.method == 'POST':
         # Extract form data
-        f_name = request.form['f_name']
-        l_name = request.form['l_name']
+        song_title = request.form['song_title']
+        duration = request.form['duration']
         genre = request.form['genre']
         
         # Process the data (e.g., add it to a database)
         # For now, let's just print it to the console
-        print("Name:", f_name + " "+ l_name, ":", "Favorite Genre:", genre)
+        print("Song Title:", song_title)
+        print("Duration:", duration)
+        print("Genre:", genre)
         
-        flash('User added successfully! Huzzah!', 'success')  # 'success' is a category; makes a green banner at the top
+        flash('Song added successfully! Huzzah!', 'success')  # 'success' is a category; makes a green banner at the top
         # Redirect to home page or another page upon successful submission
         return redirect(url_for('home'))
     else:
         # Render the form page if the request method is GET
-        return render_template('add_user.html')
-
-@app.route('/delete-user',methods=['GET', 'POST'])
-def delete_user():
+        return render_template('add_song.html')
+#Delete a Song
+@app.route('/delete-song',methods=['GET', 'POST'])
+def delete_song():
     if request.method == 'POST':
         # Extract form data
         name = request.form['name']
         
         # Process the data (e.g., add it to a database)
         # For now, let's just print it to the console
-        print("Name to delete:", name)
+        print("Song Title to delete:", name)
         
-        flash('User deleted successfully! Hoorah!', 'warning') 
+        flash('Song deleted successfully! Hoorah!', 'warning') 
         # Redirect to home page or another page upon successful submission
         return redirect(url_for('home'))
     else:
         # Render the form page if the request method is GET
-        return render_template('delete_user.html')
+        return render_template('delete_song.html')
 
-
-@app.route('/display-users')
-def display_users():
-    # hard code a value to the users_list;
+#Display songs
+@app.route('/display-songs')
+def display_songs():
+    # hard code a value to the songs_list;
     # note that this could have been a result from an SQL query :) 
-    users_list = (('John','Doe','Comedy'),('Jane', 'Doe','Drama'))
-    return render_template('display_users.html', users = users_list)
+    query="""
+    SELECT s.song_id, s.title AS song, s.duration,
+           al.title AS album, ar.name AS artist
+    FROM songs s
+    LEFT JOIN albums al ON s.album_id = al.album_id
+    LEFT JOIN song_artists sa ON s.song_id = sa.song_id
+    LEFT JOIN artists ar ON sa.artist_id = ar.artist_id
+    ORDER BY ar.name, al.title, s.title;
+    """
+    cursor.execute(query)
+    songs_list = cursor.fetchall()
+    return render_template('display_songs.html', songs = songs_list)
 
 
 # these two lines of code should always be the last in the file
