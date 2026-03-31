@@ -71,13 +71,9 @@ def display_songs():
     # hard code a value to the songs_list;
     # note that this could have been a result from an SQL query :) 
     query="""
-    SELECT s.song_id, s.title AS song, s.duration,
-           al.title AS album, ar.name AS artist
-    FROM songs s
-    LEFT JOIN albums al ON s.album_id = al.album_id
-    LEFT JOIN song_artists sa ON s.song_id = sa.song_id
-    LEFT JOIN artists ar ON sa.artist_id = ar.artist_id
-    ORDER BY ar.name, al.title, s.title;
+    SELECT song_id, title AS song, duration, artist, album
+    FROM songs
+    ORDER BY artist, album, title;
     """
     cursor.execute(query)
     songs_list = cursor.fetchall()
