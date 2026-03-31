@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS music_db;
+USE music_db;
 -- Artists table
 CREATE TABLE artists (
     artist_id INT AUTO_INCREMENT PRIMARY KEY,
