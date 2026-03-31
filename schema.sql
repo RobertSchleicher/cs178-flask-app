@@ -49,7 +49,7 @@ INSERT INTO albums (title, release_year, label) VALUES
 ('Scorpion', 2018, 'Young Money Entertainment'),
 ('25', 2015, 'XL Recordings');
 
-InSERT INTO songs (title, duration, album_id) VALUES
+INSERT INTO songs (title, duration, album_id) VALUES
 ('Blank Space', '00:03:51', 1),
 ('Shape of You', '00:03:53', 2),
 ('Formation', '00:03:26', 3),
