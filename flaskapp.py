@@ -74,21 +74,22 @@ def add_song():
     # GET request — just render form
     return render_template('add_song.html')
 #Delete a Song
-@app.route('/delete-song',methods=['GET', 'POST'])
+@app.route('/delete-song', methods=['GET', 'POST'])
 def delete_song():
     if request.method == 'POST':
-        # Extract form data
-        name = request.form['name']
-        
-        # Process the data (e.g., add it to a database)
-        # For now, let's just print it to the console
-        print("Song Title to delete:", name)
-        
-        flash('Song deleted successfully! Hoorah!', 'warning') 
-        # Redirect to home page or another page upon successful submission
+        # Use .get() for safety and match the input name
+        title = request.form.get('title', '').strip()
+        if not title:
+            flash('Please enter a song title to delete.', 'danger')
+            return redirect(url_for('delete_song'))
+
+        # Delete from DB
+        cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
+        db.commit()
+
+        flash(f'Song "{title}" deleted successfully!', 'warning')
         return redirect(url_for('home'))
     else:
-        # Render the form page if the request method is GET
         return render_template('delete_song.html')
 
 #Display songs
