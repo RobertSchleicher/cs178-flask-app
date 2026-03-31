@@ -34,6 +34,17 @@ def add_song():
         album_title = request.form['album_title']
         duration = request.form['duration']
         
+        cursor.execute("SELECT album_id FROM albums WHERE name = %s", (album_title,))
+        album_result = cursor.fetchone()
+        if album_result:
+            album_id = album_result['album_id']
+        else:
+            cursor.execute("INSERT INTO albums (name) VALUES (%s)", (album_title,))
+            db.commit()
+            album_id = cursor.lastrowid
+        cursor.execute("INSERT INTO songs (title, duration, artist, album_id) VALUES (%s, %s, %s, %s)", 
+                       (song_title, duration, artist, album_id))
+        db.commit()
         # Process the data (e.g., add it to a database)
         # For now, let's just print it to the console
         print("Song Title:", song_title)
@@ -71,9 +82,10 @@ def display_songs():
     # hard code a value to the songs_list;
     # note that this could have been a result from an SQL query :) 
     query="""
-    SELECT song_id, title AS song, duration, artist, album
-    FROM songs
-    ORDER BY artist, album, title;
+    SELECT s.song_id, s.title AS song, s.duration, s.artist, a.name AS album
+    FROM songs s
+    LEFT JOIN albums a ON s.album_id = a.album_id
+    ORDER BY s.artist, a.name, s.title;
     """
     cursor.execute(query)
     songs_list = cursor.fetchall()
