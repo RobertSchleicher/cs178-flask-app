@@ -6,14 +6,14 @@
 <body>
   <h1>Add a New Song</h1>
   <form action="{{ url_for('add_song') }}" method="post">
-    <label for="title">Song Title:</label><br>
-    <input type="text" name="title" required><br>
+    <label for="song_title">Song Title:</label><br>
+    <input type="text" name="song_title" required><br>
    
     <label for="artist">Artist:</label><br>
     <input type="text" name="artist" required><br>
    
     <label for="album_id">Album:</label><br>
-    <input type="number" name="album_id" required><br><br>
+    <input type="text" name="album_title" required><br><br>
 
     <label for="duration">Duration (MM:SS):</label><br>
     <input type="text" name="duration" required><br>

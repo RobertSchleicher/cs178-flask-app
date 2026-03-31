@@ -30,14 +30,16 @@ def add_song():
     if request.method == 'POST':
         # Extract form data
         song_title = request.form['song_title']
+        artist = request.form['artist']
+        album_title = request.form['album_title']
         duration = request.form['duration']
-        genre = request.form['genre']
         
         # Process the data (e.g., add it to a database)
         # For now, let's just print it to the console
         print("Song Title:", song_title)
         print("Duration:", duration)
-        print("Genre:", genre)
+        print("Artist:", artist)
+        print("Album:", album_title)
         
         flash('Song added successfully! Huzzah!', 'success')  # 'success' is a category; makes a green banner at the top
         # Redirect to home page or another page upon successful submission
