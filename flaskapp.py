@@ -10,9 +10,7 @@ db = mysql.connector.connect(
     password=creds.password,
     database=creds.db
 )
-cursor = db.cursor(dictionary=True)
-cursor.execute("SELECT rating FROM songs LIMIT 1;")
-print(cursor.fetchone())
+
 
 cursor = db.cursor(dictionary=True)
 from flask import Flask
