@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Update Song Rating</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h2 class="mt-5">Update Song Rating</h2>
+
+        <form action="{{ url_for('update_song') }}" method="post">
+            
+            <label for="song_title">Song Title:</label><br>
+            <input type="text" name="song_title" class="form-control" required><br>
+
+            <label for="rating">New Rating (1–10):</label><br>
+            <input type="number" name="rating" min="1" max="10" class="form-control" required><br>
+
+            <input type="submit" value="Update Rating" class="btn btn-secondary">
+        </form>
+
+        <a href="{{ url_for('home') }}" class="btn btn-primary mt-3">Back to Home</a>
+    </div>
+</body>
+</html>
