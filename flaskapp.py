@@ -199,13 +199,16 @@ def display_songs():
     """
     cursor.execute(query)
     songs_list = cursor.fetchall()
-    #Add view counts from DynamoDB
+
     for song in songs_list:
+        song_id_str = str(song['song_id'])  # ensure it's a string
         try:
-            response = dynamo_table.get_item(Key={'song_id': str(song['song_id'])})
-            song['views'] = response['Item']['views']
-        except KeyError:
-            song['views'] = 0  # Default to 0 if no entry in DynamoDB
+            response = dynamo_table.get_item(Key={'song_id': song_id_str})
+            song['views'] = response.get('Item', {}).get('views', 0)
+        except Exception as e:
+            # fallback in case of any error
+            song['views'] = 0
+
     # Replace None with empty strings
     for song in songs_list:
         song['artist'] = song['artist'] or ''
@@ -222,14 +225,20 @@ def view_song():
         flash('No song selected.', 'danger')
         return redirect(url_for('display_songs'))
 
-    # Increment view count safely
-    dynamo_table.update_item(
-        Key={'song_id': str(song_id)},
-        UpdateExpression="SET views = if_not_exists(views, :start) + :inc",
-        ExpressionAttributeValues={':inc': 1, ':start': 0}
-    )
+    # Ensure song_id is a string
+    song_id_str = str(song_id)
 
-    flash('Song view count updated!', 'success')
+    try:
+        # Increment views in DynamoDB
+        dynamo_table.update_item(
+            Key={'song_id': song_id_str},
+            UpdateExpression="SET views = if_not_exists(views, :start) + :inc",
+            ExpressionAttributeValues={':inc': 1, ':start': 0}
+        )
+        flash('Song view count updated!', 'success')
+    except Exception as e:
+        flash(f'Error updating views: {e}', 'danger')
+
     return redirect(url_for('display_songs'))
 
 # these two lines of code should always be the last in the file
