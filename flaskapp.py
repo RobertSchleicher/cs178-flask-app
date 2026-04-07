@@ -17,7 +17,6 @@ db = mysql.connector.connect(
     database=creds.db
 )
 
-
 cursor = db.cursor(dictionary=True)
 
 # --- DynamoDB connection ---
