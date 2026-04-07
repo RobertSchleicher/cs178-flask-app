@@ -146,6 +146,11 @@ def update_song():
 #Display songs
 @app.route('/display-songs')
 def display_songs():
+    #debug
+    cursor.execute("SELECT DATABASE();")
+    print(cursor.fetchone())  # Should print 'music_db'
+    cursor.execute("SHOW COLUMNS FROM songs;")
+    print(cursor.fetchall())  # Should include 'rating'
     # Select songs along with their album titles
     query = """
     SELECT 
