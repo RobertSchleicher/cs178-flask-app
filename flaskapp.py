@@ -108,7 +108,68 @@ def delete_song():
     return render_template('delete_song.html')
 
 #Update Song
+@app.route('/update-song', methods=['GET', 'POST'])
+def update_song():
+    if request.method == 'POST':
+        song_id = request.form.get('song_id')
+        new_title = request.form.get('title', '').strip()
+        new_artist = request.form.get('artist', '').strip()
+        new_album_title = request.form.get('album', '').strip()
+        new_duration = request.form.get('duration', '').strip()
 
+        if not song_id:
+            flash('No song selected.', 'danger')
+            return redirect(url_for('update_song'))
+
+        # Validate duration format if provided
+        import re
+        if new_duration and not re.match(r'^\d{1,2}:\d{2}$', new_duration):
+            flash('Invalid duration format. Use MM:SS.', 'danger')
+            return redirect(url_for('update_song'))
+
+        # Handle album
+        album_id = None
+        if new_album_title:
+            cursor.execute("SELECT album_id FROM albums WHERE title = %s", (new_album_title,))
+            album_result = cursor.fetchone()
+            if album_result:
+                album_id = album_result['album_id']
+            else:
+                cursor.execute("INSERT INTO albums (title) VALUES (%s)", (new_album_title,))
+                db.commit()
+                album_id = cursor.lastrowid
+
+        # Build UPDATE query dynamically
+        fields = []
+        values = []
+        if new_title: 
+            fields.append("title = %s")
+            values.append(new_title)
+        if new_artist:
+            fields.append("artist = %s")
+            values.append(new_artist)
+        if new_duration:
+            fields.append("duration = %s")
+            values.append(new_duration)
+        if album_id:
+            fields.append("album_id = %s")
+            values.append(album_id)
+
+        if fields:
+            values.append(song_id)
+            sql = f"UPDATE songs SET {', '.join(fields)} WHERE song_id = %s"
+            cursor.execute(sql, tuple(values))
+            db.commit()
+            flash('Song updated successfully!', 'success')
+        else:
+            flash('No changes submitted.', 'warning')
+
+        return redirect(url_for('display_songs'))
+
+    # GET request: fetch songs for selection
+    cursor.execute("SELECT song_id, title FROM songs ORDER BY title")
+    songs = cursor.fetchall()
+    return render_template('update_song.html', songs=songs)
 
 #Display songs
 @app.route('/display-songs')
