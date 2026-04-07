@@ -12,7 +12,6 @@
             <thead class="thead-dark">
                 <tr>
                     <th>Song Title</th>
-                    <th>Duration</th>
                     <th>Album</th>
                     <th>Artist</th>
                     <th>Views</th>
@@ -23,15 +22,14 @@
                 {% for song in songs %}
                 <tr>
                     <td>{{ song.song }}</td>
-                    <td>{{ song.duration }}</td>
                     <td>{{ song.album }}</td>
                     <td>{{ song.artist }}</td>
                     <td>{{ song.views }}</td>
                     <td> <form method="POST" action="{{ url_for('view_song') }}">
                          <input type="hidden" name="song_id" value="{{ song.song_id }}">
-                         <button type="submit" class="btn btn-danger">View Song</button>
+                         <button type="submit" class="btn btn-primary">View Song</button>
                         </form>
-                    
+
                 </tr>
                 {% endfor %}
             </tbody>

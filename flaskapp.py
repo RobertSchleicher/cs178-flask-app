@@ -1,15 +1,16 @@
 # author: Robert Schleicher
-# description: Flask example using redirect, url_for, and flash
-# credit: the template html files were constructed with the help of ChatGPT
+# description: Flask app using redirect, url_for, request, flash, and render_template to create a simple music library that incorporates mysql and dynamodb. 
+# Includes the use of CRUD operations. 
+# credit: Html templates were adapted from template with use of ChatGPT. Some of the app route code had help from ChatGPT but the decisions on how to implement was mine.
 import mysql.connector
 import boto3
-import creds  # contains host, user, password, db
+import creds  # contains host, user, password, db, aws_access_key, aws_secret_key
 from flask import Flask
 from flask import render_template
 from flask import Flask, render_template, request, redirect, url_for, flash
 from dbCode import *
 
-# --- MySQL connection ---
+# MySQL connection
 db = mysql.connector.connect(
     host=creds.host,
     user=creds.user,
@@ -19,7 +20,7 @@ db = mysql.connector.connect(
 
 cursor = db.cursor(dictionary=True)
 
-# --- DynamoDB connection ---
+# DynamoDB connection
 dynamodb = boto3.resource(
     'dynamodb',
     aws_access_key_id=creds.aws_access_key,
@@ -32,7 +33,6 @@ dynamo_table = dynamodb.Table('song_stats')
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key' # this is an artifact for using flash displays; 
- 
                                   # it is required, but you can leave this alone
 #Home Page
 @app.route('/')
@@ -44,12 +44,11 @@ def home():
 def add_song():
     if request.method == 'POST':
         # Extract and clean form data
-        song_title = request.form['song_title'].strip()
-        artist = request.form['artist'].strip()
-        album_title = request.form['album_title'].strip()
-        duration = request.form['duration'].strip()
+        song_title = request.form['song_title']
+        artist = request.form['artist']
+        album_title = request.form['album_title']
 
-        # --- Validation ---
+        #Checking for empty fields
         if not song_title:
             flash('Song title cannot be empty!', 'danger')
             return redirect(url_for('add_song'))
@@ -60,13 +59,7 @@ def add_song():
             flash('Album cannot be empty!', 'danger')
             return redirect(url_for('add_song'))
         
-        # Validate duration format MM:SS
-        import re
-        if not re.match(r'^\d{1,2}:\d{2}$', duration):
-            flash('Invalid duration format. Use MM:SS.', 'danger')
-            return redirect(url_for('add_song'))
-        
-        # --- Handle album ---
+        # To connect songs to album using album id. ChatGpt assisted with this with syntax.
         cursor.execute("SELECT album_id FROM albums WHERE title = %s", (album_title,))
         album_result = cursor.fetchone()
         if album_result:
@@ -76,37 +69,29 @@ def add_song():
             db.commit()
             album_id = cursor.lastrowid
         
-        # --- Insert song ---
+        # Insert song
         cursor.execute("""
-            INSERT INTO songs (title, duration, artist, album_id)
-            VALUES (%s, %s, %s, %s)
-        """, (song_title, duration, artist, album_id))
+            INSERT INTO songs (title, artist, album_id)
+            VALUES (%s, %s, %s)
+        """, (song_title, artist, album_id))
         db.commit()
 
-        flash('Song added successfully! 🎵', 'success')
+        flash('Song added successfully!', 'success')
         return redirect(url_for('home'))
     
-    # GET request — just render form
+    # Render the form page if request method is GET
     return render_template('add_song.html')
 #Delete a Song
 @app.route('/delete-song', methods=['GET', 'POST'])
 def delete_song():
     if request.method == 'POST':
-        title = request.form.get('title', '').strip()
+        title = request.form.get('title', '')
         if not title:
             flash('Please enter a song title to delete.', 'danger')
             return redirect(url_for('delete_song'))
+        #Chat assited with try except syntax. 
         try:
-            # Delete dependent rows
-            cursor.execute("""
-                DELETE sa
-                FROM song_artists sa
-                JOIN songs s ON sa.song_id = s.song_id
-                WHERE s.title = %s
-            """, (title,))
-            db.commit()
-
-            # Delete songs
+            # Delete song
             cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
             db.commit()
 
@@ -124,22 +109,15 @@ def delete_song():
 def update_song():
     if request.method == 'POST':
         song_id = request.form.get('song_id')
-        new_title = request.form.get('title', '').strip()
-        new_artist = request.form.get('artist', '').strip()
-        new_album_title = request.form.get('album', '').strip()
-        new_duration = request.form.get('duration', '').strip()
+        new_title = request.form.get('title', '')
+        new_artist = request.form.get('artist', '')
+        new_album_title = request.form.get('album', '')
 
         if not song_id:
             flash('No song selected.', 'danger')
             return redirect(url_for('update_song'))
 
-        # Validate duration format if provided
-        import re
-        if new_duration and not re.match(r'^\d{1,2}:\d{2}$', new_duration):
-            flash('Invalid duration format. Use MM:SS.', 'danger')
-            return redirect(url_for('update_song'))
-
-        # Handle album
+        # Handle album. Assisted with ChatGpt for syntax.
         album_id = None
         if new_album_title:
             cursor.execute("SELECT album_id FROM albums WHERE title = %s", (new_album_title,))
@@ -151,7 +129,7 @@ def update_song():
                 db.commit()
                 album_id = cursor.lastrowid
 
-        # Build UPDATE query dynamically
+        # Update query was helped with chatgpt 
         fields = []
         values = []
         if new_title: 
@@ -160,13 +138,9 @@ def update_song():
         if new_artist:
             fields.append("artist = %s")
             values.append(new_artist)
-        if new_duration:
-            fields.append("duration = %s")
-            values.append(new_duration)
         if album_id:
             fields.append("album_id = %s")
             values.append(album_id)
-
         if fields:
             values.append(song_id)
             sql = f"UPDATE songs SET {', '.join(fields)} WHERE song_id = %s"
@@ -178,7 +152,7 @@ def update_song():
 
         return redirect(url_for('display_songs'))
 
-    # GET request: fetch songs for selection
+    # GET request: show form with song options
     cursor.execute("SELECT song_id, title FROM songs ORDER BY title")
     songs = cursor.fetchall()
     return render_template('update_song.html', songs=songs)
@@ -189,8 +163,7 @@ def display_songs():
     query = """
     SELECT 
         s.song_id, 
-        s.title AS song, 
-        s.duration, 
+        s.title AS song,  
         s.artist, 
         a.title AS album
     FROM songs s
@@ -200,8 +173,9 @@ def display_songs():
     cursor.execute(query)
     songs_list = cursor.fetchall()
 
+    #Adds view counts for DynamoDb. Syntax was helped with ChatGpt
     for song in songs_list:
-        song_id_str = str(song['song_id'])  # ensure it's a string
+        song_id_str = str(song['song_id'])  # ensure it's a string.
         try:
             response = dynamo_table.get_item(Key={'song_id': song_id_str})
             song['views'] = response.get('Item', {}).get('views', 0)
@@ -209,15 +183,9 @@ def display_songs():
             # fallback in case of any error
             song['views'] = 0
 
-    # Replace None with empty strings
-    for song in songs_list:
-        song['artist'] = song['artist'] or ''
-        song['album'] = song['album'] or ''
-        song['duration'] = song['duration'] or ''
-
     return render_template('display_songs.html', songs=songs_list)
 
-# --- Increment View Count in DynamoDB ---
+# View Count in DynamoDB
 @app.route('/view-song', methods=['POST'])
 def view_song():
     song_id = request.form.get('song_id')
@@ -226,7 +194,7 @@ def view_song():
         return redirect(url_for('display_songs'))
 
     try:
-        # Increment view count safely using expression attribute name
+        # Assisted with ChatGpt to safely update view count
         dynamo_table.update_item(
             Key={'song_id': str(song_id)},
             UpdateExpression="SET #v = if_not_exists(#v, :start) + :inc",
