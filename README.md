@@ -1,14 +1,15 @@
-# [Your Project Name Here]
+# Project One Song Library
 
 **CS178: Cloud and Database Systems — Project #1**
-**Author:** [Your Name]
-**GitHub:** [your-username]
+**Author:** [Robert Schleicher]
+**GitHub:** [RobertSchleicher]
 
 ---
 
 ## Overview
 
-<!-- Describe your project in 2-4 sentences. What does it do? Who is it for? What problem does it solve? -->
+<!-- This project uses flask app to have a website that tracks songs,artists, and artists. Users can add, update, delete, view songs.
+It has a relational database for structure of song and album data and uses non-relational dynamodb to use to track songs views. Users can hit view song button to add view to song -->
 
 ---
 
@@ -16,8 +17,8 @@
 
 - **Flask** — Python web framework
 - **AWS EC2** — hosts the running Flask application
-- **AWS RDS (MySQL)** — relational database for [describe what you stored]
-- **AWS DynamoDB** — non-relational database for [describe what you stored]
+- **AWS RDS (MySQL)** — relational database for [songs, albums, and artists]
+- **AWS DynamoDB** — non-relational database for [stores view counts for each song]
 - **GitHub Actions** — auto-deploys code from GitHub to EC2 on push
 
 ---
@@ -28,11 +29,15 @@
 ProjectOne/
 ├── flaskapp.py          # Main Flask application — routes and app logic
 ├── dbCode.py            # Database helper functions (MySQL connection + queries)
-├── creds_sample.py      # Sample credentials file (see Credential Setup below)
 ├── templates/
 │   ├── home.html        # Landing page
-│   ├── [other].html     # Add descriptions for your other templates
-├── .gitignore           # Excludes creds.py and other sensitive files
+│   ├── add_song.html    # Form to add new song
+│   ├── delete_song.html   # Form to delete new song
+│   ├── update_song.html   # Form to update song
+│   ├── display_songs.html #Displays list of song with views
+│   
+├── .gitignore       #Excludes cred.py and other sensitive files
+├── creds.py          # credentials file
 └── README.md
 ```
 
@@ -89,6 +94,8 @@ host = "your-rds-endpoint"
 user = "admin"
 password = "your-password"
 db = "your-database-name"
+aws_access_key = "your-aws-access-key"
+aws_secret_key = "your-aws-secret-key"
 ```
 
 ---
@@ -101,38 +108,32 @@ db = "your-database-name"
 
 **Example:**
 
-- `[TableName]` — stores [description]; primary key is `[key]`
-- `[TableName]` — stores [description]; foreign key links to `[other table]`
+- `[albums]` — stores [album titles]; primary key is `[album_id]`
+- `[songs]` — stores [song title, artist, and album_id]; Primary key is song_id and foreign key album_id links to `[albums]`
 
-The JOIN query used in this project: <!-- describe it in plain English -->
-
+The JOIN query used in this project: I got song details along with their album names by using album_id with a left join
 ### DynamoDB
-
-<!-- Describe your DynamoDB table. What is the partition key? What attributes does each item have? How does it connect to the rest of the app? -->
-
-- **Table name:** `[your-table-name]`
-- **Partition key:** `[key-name]`
-- **Used for:** [description]
+- **Table name:** `[song_stats]`
+- **Partition key:** `[song_id]`
+- **Used for:** [ I used this to track the number of views for each song. Each song has a song_id and views (number) when the user clicks the "view song", the app increase the view count.]
 
 ---
 
 ## CRUD Operations
 
-| Operation | Route      | Description    |
-| --------- | ---------- | -------------- |
-| Create    | `/[route]` | [what it does] |
-| Read      | `/[route]` | [what it does] |
-| Update    | `/[route]` | [what it does] |
-| Delete    | `/[route]` | [what it does] |
+| Operation | Route              | Description                                   |
+| --------- | -------------------| ----------------------------------------------|
+| Create    | `/[add-song]`      | [Adds new song to MySQL database]             |
+| Read      | `/[display-songs]` | [Displays all songs with song info and views] |
+| Update    | `/[update-song]`   | [Update song info(title,artist, and album)]   |
+| Delete    | `/[delete-song]`   | [Delete a song from MySQL database]           |
 
 ---
 
 ## Challenges and Insights
-
-<!-- What was the hardest part? What did you learn? Any interesting design decisions? -->
-
+I had a decent amount of work was ensuring all my CRUD operations worked safely. I kept getting issues with my display. I liked using the different flash messages and colored buttons to improve overall feel of website. It was also pretty tough deciding how to integrate both MySQL and DynamoDB. It helped distigush the different needs between structured and unstructured data. 
 ---
 
 ## AI Assistance
 
-<!-- List any AI tools you used (e.g., ChatGPT) and briefly describe what you used them for. Per course policy, AI use is allowed but must be cited in code comments and noted here. -->
+I used ChatGPT to help with HTML files, Flask routes syntax/structure, and to overall troubleshoot error messages.
