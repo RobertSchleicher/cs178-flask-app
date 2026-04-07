@@ -84,10 +84,10 @@ def delete_song():
         if not title:
             flash('Please enter a song title to delete.', 'danger')
             return redirect(url_for('delete_song'))
-        cursor = db.cursor()
 
+        cursor = db.cursor()  # fresh cursor
         try:
-            # Delete dependent rows safely for all songs with this title
+            # Delete dependent rows
             cursor.execute("""
                 DELETE sa
                 FROM song_artists sa
@@ -96,16 +96,18 @@ def delete_song():
             """, (title,))
             db.commit()
 
-            # Delete the songs themselves
+            # Delete songs
             cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
             db.commit()
+            cursor.close()
 
-            flash(f'Song(s) "{title}" and all related artist links deleted successfully!', 'warning')
+            flash(f'Song(s) "{title}" and related artist links deleted successfully!', 'warning')
 
         except mysql.connector.Error as err:
+            cursor.close()
             flash(f'Error deleting song: {err}', 'danger')
 
-        return redirect(url_for('home'))
+        return redirect(url_for('display_songs'))
 
     return render_template('delete_song.html')
 
@@ -149,8 +151,7 @@ def update_song():
 #Display songs
 @app.route('/display-songs')
 def display_songs():
-    cursor = db.cursor(dictionary=True)
-    # Select songs along with their album titles
+    cursor = db.cursor(dictionary=True)  # fresh cursor
     query = """
     SELECT 
         s.song_id, 
@@ -163,13 +164,14 @@ def display_songs():
     ORDER BY s.artist, a.title, s.title;
     """
     cursor.execute(query)
-    songs_list = cursor.fetchall()  # returns a list of dicts because cursor is dictionary=True
+    songs_list = cursor.fetchall()
+    cursor.close()  # close after use
 
-    # Ensure all fields display correctly, replace None with empty string if needed
+    # Replace None with empty strings
     for song in songs_list:
-         song['artist'] = song['artist'] or ''
-         song['album'] = song['album'] or ''
-         song['duration'] = song['duration'] or ''
+        song['artist'] = song['artist'] or ''
+        song['album'] = song['album'] or ''
+        song['duration'] = song['duration'] or ''
 
     return render_template('display_songs.html', songs=songs_list)
 
