@@ -104,6 +104,41 @@ def delete_song():
         return redirect(url_for('home'))
 
     return render_template('delete_song.html')
+#Update Song Rating
+@app.route('/update-song', methods=['GET', 'POST'])
+def update_song():
+    if request.method == 'POST':
+        song_title = request.form.get('song_title', '').strip()
+        rating = request.form.get('rating', '').strip()
+
+        # --- Validation ---
+        if not song_title:
+            flash('Song title cannot be empty!', 'danger')
+            return redirect(url_for('update_song'))
+
+        if not rating.isdigit() or not (1 <= int(rating) <= 10):
+            flash('Rating must be a number between 1 and 10.', 'danger')
+            return redirect(url_for('update_song'))
+
+        try:
+            cursor.execute("""
+                UPDATE songs
+                SET rating = %s
+                WHERE title = %s
+            """, (rating, song_title))
+            db.commit()
+
+            if cursor.rowcount > 0:
+                flash('Rating updated successfully!', 'success')
+            else:
+                flash('No song found with that title.', 'warning')
+
+        except mysql.connector.Error as err:
+            flash(f'Error updating rating: {err}', 'danger')
+
+        return redirect(url_for('home'))
+
+    return render_template('update_song.html')
 
 #Display songs
 @app.route('/display-songs')
@@ -115,6 +150,7 @@ def display_songs():
         s.title AS song, 
         s.duration, 
         s.artist, 
+        s.rating,
         a.title AS album
     FROM songs s
     LEFT JOIN albums a ON s.album_id = a.album_id
@@ -125,12 +161,10 @@ def display_songs():
 
     # Ensure all fields display correctly, replace None with empty string if needed
     for song in songs_list:
-        if song['artist'] is None:
-            song['artist'] = ''
-        if song['album'] is None:
-            song['album'] = ''
-        if song['duration'] is None:
-            song['duration'] = ''
+         song['artist'] = song['artist'] or ''
+         song['album'] = song['album'] or ''
+         song['duration'] = song['duration'] or ''
+         song['rating'] = song['rating'] or ''
 
     return render_template('display_songs.html', songs=songs_list)
 
