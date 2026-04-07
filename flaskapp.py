@@ -202,7 +202,7 @@ def display_songs():
     #Add view counts from DynamoDB
     for song in songs_list:
         try:
-            response = dynamo_table.get_item(Key={'song_id': song['song_id']})
+            response = dynamo_table.get_item(Key={'song_id': str(song['song_id'])})
             song['views'] = response['Item']['views']
         except KeyError:
             song['views'] = 0  # Default to 0 if no entry in DynamoDB
