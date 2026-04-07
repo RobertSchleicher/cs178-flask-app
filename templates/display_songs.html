@@ -15,6 +15,7 @@
                     <th>Duration</th>
                     <th>Album</th>
                     <th>Artist</th>
+                    <th>Rating</th>
                 </tr>
             </thead>
             <tbody>
@@ -24,6 +25,10 @@
                     <td>{{ song.duration }}</td>
                     <td>{{ song.album }}</td>
                     <td>{{ song.artist }}</td>
+                    <td>{{ song.rating }}</td>
+                    <td>
+                        <a href="{{ url_for('update_song', song_title=song.song) }}" class="btn btn-sm btn-secondary">Update Rating</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
