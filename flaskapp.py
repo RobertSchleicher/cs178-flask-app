@@ -84,6 +84,7 @@ def delete_song():
         if not title:
             flash('Please enter a song title to delete.', 'danger')
             return redirect(url_for('delete_song'))
+        cursor = db.cursor()
 
         try:
             # Delete dependent rows safely for all songs with this title
@@ -148,6 +149,7 @@ def update_song():
 #Display songs
 @app.route('/display-songs')
 def display_songs():
+    cursor = db.cursor(dictionary=True)
     # Select songs along with their album titles
     query = """
     SELECT 
