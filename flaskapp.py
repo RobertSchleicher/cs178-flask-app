@@ -2,8 +2,14 @@
 # description: Flask example using redirect, url_for, and flash
 # credit: the template html files were constructed with the help of ChatGPT
 import mysql.connector
+import boto3
 import creds  # contains host, user, password, db
+from flask import Flask
+from flask import render_template
+from flask import Flask, render_template, request, redirect, url_for, flash
+from dbCode import *
 
+# --- MySQL connection ---
 db = mysql.connector.connect(
     host=creds.host,
     user=creds.user,
@@ -13,10 +19,17 @@ db = mysql.connector.connect(
 
 
 cursor = db.cursor(dictionary=True)
-from flask import Flask
-from flask import render_template
-from flask import Flask, render_template, request, redirect, url_for, flash
-from dbCode import *
+
+# --- DynamoDB connection ---
+dynamodb = boto3.resource(
+    'dynamodb',
+    aws_access_key_id=creds.aws_access_key,
+    aws_secret_access_key=creds.aws_secret_key,
+    region_name='us-east-1'
+)
+dynamo_table = dynamodb.Table('song_stats')
+
+
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key' # this is an artifact for using flash displays; 
@@ -187,6 +200,13 @@ def display_songs():
     """
     cursor.execute(query)
     songs_list = cursor.fetchall()
+    #Add view counts from DynamoDB
+    for song in songs_list:
+        try:
+            response = dynamo_table.get_item(Key={'song_id': song['song_id']})
+            song['views'] = response['Item']['views']
+        except KeyError:
+            song['views'] = 0  # Default to 0 if no entry in DynamoDB
     # Replace None with empty strings
     for song in songs_list:
         song['artist'] = song['artist'] or ''
@@ -195,6 +215,23 @@ def display_songs():
 
     return render_template('display_songs.html', songs=songs_list)
 
+# --- Increment View Count in DynamoDB ---
+@app.route('/view-song', methods=['POST'])
+def view_song():
+    song_id = request.form.get('song_id')
+    if not song_id:
+        flash('No song selected.', 'danger')
+        return redirect(url_for('display_songs'))
+
+    # Increment view count safely
+    dynamo_table.update_item(
+        Key={'song_id': str(song_id)},
+        UpdateExpression="SET views = if_not_exists(views, :start) + :inc",
+        ExpressionAttributeValues={':inc': 1, ':start': 0}
+    )
+
+    flash('Song view count updated!', 'success')
+    return redirect(url_for('display_songs'))
 
 # these two lines of code should always be the last in the file
 if __name__ == '__main__':
