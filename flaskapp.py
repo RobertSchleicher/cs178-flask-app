@@ -19,6 +19,12 @@ from dbCode import *
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key' # this is an artifact for using flash displays; 
+ 
+cursor.execute("SELECT DATABASE();")
+print("Connected to database:", cursor.fetchone())
+
+cursor.execute("SELECT rating FROM songs LIMIT 1;")
+print(cursor.fetchone())
                                    # it is required, but you can leave this alone
 #Home Page
 @app.route('/')
