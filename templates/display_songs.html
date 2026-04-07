@@ -1,11 +1,3 @@
-cursor.execute("SELECT DATABASE() AS db_name;")
-db_name = cursor.fetchone()
-print("Connected to database:", db_name['db_name'])
-
-cursor.execute("SHOW COLUMNS FROM songs;")
-columns = cursor.fetchall()
-print("Songs table columns:", [c['Field'] for c in columns])
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
