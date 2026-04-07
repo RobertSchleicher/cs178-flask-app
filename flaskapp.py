@@ -225,14 +225,12 @@ def view_song():
         flash('No song selected.', 'danger')
         return redirect(url_for('display_songs'))
 
-    # Ensure song_id is a string
-    song_id_str = str(song_id)
-
     try:
-        # Increment views in DynamoDB
+        # Increment view count safely using expression attribute name
         dynamo_table.update_item(
-            Key={'song_id': song_id_str},
-            UpdateExpression="SET views = if_not_exists(views, :start) + :inc",
+            Key={'song_id': str(song_id)},
+            UpdateExpression="SET #v = if_not_exists(#v, :start) + :inc",
+            ExpressionAttributeNames={'#v': 'views'},
             ExpressionAttributeValues={':inc': 1, ':start': 0}
         )
         flash('Song view count updated!', 'success')
