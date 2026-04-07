@@ -1,4 +1,4 @@
-# author: T. Urness and M. Moore
+# author: Robert Schleicher
 # description: Flask example using redirect, url_for, and flash
 # credit: the template html files were constructed with the help of ChatGPT
 import mysql.connector
@@ -84,8 +84,6 @@ def delete_song():
         if not title:
             flash('Please enter a song title to delete.', 'danger')
             return redirect(url_for('delete_song'))
-
-        cursor = db.cursor()  # fresh cursor
         try:
             # Delete dependent rows
             cursor.execute("""
@@ -99,12 +97,10 @@ def delete_song():
             # Delete songs
             cursor.execute("DELETE FROM songs WHERE title = %s", (title,))
             db.commit()
-            cursor.close()
 
             flash(f'Song(s) "{title}" and related artist links deleted successfully!', 'warning')
 
         except mysql.connector.Error as err:
-            cursor.close()
             flash(f'Error deleting song: {err}', 'danger')
 
         return redirect(url_for('display_songs'))
@@ -112,46 +108,11 @@ def delete_song():
     return render_template('delete_song.html')
 
 #Update Song
-@app.route('/update-song', methods=['GET', 'POST'])
-def update_song():
-    if request.method == 'POST':
-        song_title = request.form.get('song_title', '').strip()
-        rating = request.form.get('rating', '').strip()
-
-        # Validation
-        if not song_title:
-            flash('Song title cannot be empty!', 'danger')
-            return redirect(url_for('update_song'))
-        if not rating.isdigit() or not (1 <= int(rating) <= 10):
-            flash('Rating must be a number between 1 and 10.', 'danger')
-            return redirect(url_for('update_song'))
-
-        try:
-            cursor.execute("""
-                UPDATE songs
-                SET rating = %s
-                WHERE title = %s
-            """, (rating, song_title))
-            db.commit()
-
-            if cursor.rowcount > 0:
-                flash('Rating updated successfully!', 'success')
-            else:
-                flash('No song found with that title.', 'warning')
-
-        except mysql.connector.Error as err:
-            flash(f'Error updating rating: {err}', 'danger')
-
-        return redirect(url_for('display_songs'))
-
-    # GET request: render form
-    return render_template('update_song.html')
 
 
 #Display songs
 @app.route('/display-songs')
 def display_songs():
-    cursor = db.cursor(dictionary=True)  # fresh cursor
     query = """
     SELECT 
         s.song_id, 
@@ -165,8 +126,6 @@ def display_songs():
     """
     cursor.execute(query)
     songs_list = cursor.fetchall()
-    cursor.close()  # close after use
-
     # Replace None with empty strings
     for song in songs_list:
         song['artist'] = song['artist'] or ''
