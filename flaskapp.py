@@ -26,6 +26,7 @@ app.secret_key = 'your_secret_key' # this is an artifact for using flash display
 @app.route('/')
 def home():
     return render_template('home.html')
+
 #Add a song
 @app.route('/add-song', methods=['GET', 'POST'])
 def add_song():
@@ -166,7 +167,7 @@ def display_songs():
          song['artist'] = song['artist'] or ''
          song['album'] = song['album'] or ''
          song['duration'] = song['duration'] or ''
-         song['rating'] = song['rating'] or ''
+         song['rating'] = song['rating'] if song['rating'] is not None else ''
 
     return render_template('display_songs.html', songs=songs_list)
 
