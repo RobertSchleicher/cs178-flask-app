@@ -155,7 +155,6 @@ def display_songs():
         s.title AS song, 
         s.duration, 
         s.artist, 
-        s.rating,
         a.title AS album
     FROM songs s
     LEFT JOIN albums a ON s.album_id = a.album_id
@@ -169,7 +168,6 @@ def display_songs():
          song['artist'] = song['artist'] or ''
          song['album'] = song['album'] or ''
          song['duration'] = song['duration'] or ''
-         song['rating'] = song['rating'] or ''
 
     return render_template('display_songs.html', songs=songs_list)
 
