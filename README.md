@@ -8,9 +8,8 @@
 
 ## Overview
 
-<!-- This project uses flask app to have a website that tracks songs,artists, and artists. Users can add, update, delete, view songs.
-It has a relational database for structure of song and album data and uses non-relational dynamodb to use to track songs views. Users can hit view song button to add view to song -->
-
+This project uses flask app to have a website that tracks songs,artists, and artists. Users can add, update, delete, view songs.
+It has a relational database for structure of song and album data and uses non-relational dynamodb to use to track songs views. Users can hit view song button to add view to song
 ---
 
 ## Technologies Used
